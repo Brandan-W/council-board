@@ -16,6 +16,8 @@ test('policy: no file gives newcomer defaults; partial file is merged over defau
     assert.equal(policy.codex.enabled, false);
     assert.deepEqual(policy.debates.maxWords, NEWCOMER.debates.maxWords);
     assert.equal(policy.codex.consentRequired, true);
+    assert.equal(policy.providers.copilot.enabled, false);
+    assert.equal(policy.providers.copilot.allowWrite, false);
     assert.deepEqual(policy.collaboration, NEWCOMER.collaboration);
   `));
 });
@@ -25,12 +27,15 @@ for (const [key, value, message] of [
   ['collaboration.claimHours', 0, 'collaboration.claimHours must be a whole number from 1 to 24'],
   ['codex.timeoutMinutes', 5.5, 'codex.timeoutMinutes must be a whole number from 5 to 120'],
   ['debates.minConfidence', 1.1, 'debates.minConfidence must be a number from 0.5 to 1'],
+  ['providers.copilot.maxConcurrent', 0, 'providers.copilot.maxConcurrent must be a whole number from 1 to 8'],
 ]) {
   test(`policy: invalid ${key} is rejected with a readable message`, (t) => {
     const s = sandbox(t);
     const saved = {};
     const parts = key.split('.');
-    saved[parts[0]] = { [parts[1]]: value };
+    let target = saved;
+    for (const part of parts.slice(0, -1)) target = target[part] ||= {};
+    target[parts.at(-1)] = value;
     s.json(path.join(s.board, 'policy.json'), saved);
     succeeds(s.evaluate(`
       const { loadPolicy } = await import(${JSON.stringify(moduleURL('lib/policy.mjs'))});

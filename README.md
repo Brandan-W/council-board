@@ -16,6 +16,7 @@ The rules are a policy you approve during setup. It lives in a settings file tha
 - Node 20 or newer
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code), with one or more accounts. Each account has its own config folder: the default is `~/.claude`, and others are used with `CLAUDE_CONFIG_DIR`.
 - Optional: the [Codex CLI](https://github.com/openai/codex), signed in to your ChatGPT account
+- Optional: the local [GitHub Copilot CLI](https://docs.github.com/copilot/how-tos/copilot-cli), authenticated with `copilot login`
 - git, if you want Codex to edit in its own copy of a project
 
 ## Quick start
@@ -56,6 +57,8 @@ Plain words work too: "get the other Claude to help with X", "ask the team about
 - **A hook** (`hook.mjs`) runs on each prompt and each tool step. It hands the agent new board messages, and it refuses edits to files another agent has claimed.
 - **The launcher** (`codex.mjs`) runs Codex headless: read-only by default, or in a review sandbox, or in its own git worktree for edits. Nothing reaches your folder until you approve.
 - **The debate tool** (`debate.mjs`) seals the first-round views, enforces budgets and word limits, and writes the records.
+- **Provider metadata** describes the local Copilot CLI identity and its configured executable.
+- **The Copilot adapter** (`copilot.mjs`) runs the installed CLI in non-interactive prompt mode, read-only, after per-project consent; it does not use ACP or apply edits.
 - **One event log** for all projects, in the board's data folder. Each message is tagged with its project.
 
 | Path | What |

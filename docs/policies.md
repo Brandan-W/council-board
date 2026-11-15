@@ -35,6 +35,8 @@ To change the policy, run `node setup.mjs` again (start from "current"), or edit
 
 Settings that setup doesn't ask about (edit `policy.json` to change them):
 
+- `providers.copilot.*`: provider-scoped controls for the local Copilot CLI adapter. It is disabled by default. The current adapter remains read-only even if `allowWrite` is set; no write isolation/apply path exists yet.
+
 - `collaboration.requestHours`: 12. An open help request expires after this long.
 - `debates.deadlineMinutes`: 8. The round-1 deadline.
 - `debates.maxWords`: 350 / 200 / 80 words for rounds 1, 2 and 3.

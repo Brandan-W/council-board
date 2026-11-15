@@ -20,7 +20,7 @@ import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
-import { AGENTS_FILE, findCodexBin, loadAgents, validateAgents } from './lib/config.mjs';
+import { AGENTS_FILE, findCodexBin, findCopilotBin, loadAgents, validateAgents } from './lib/config.mjs';
 import { CONFIG_DIR, DATA_DIR, expandHome } from './lib/paths.mjs';
 import { HOUSE_RULES_FILE, NEWCOMER, POLICY_FILE, PRESETS, RULES, describePolicy, getPath, merge, setPath, validatePolicy } from './lib/policy.mjs';
 
@@ -185,6 +185,11 @@ export function normalizeAnswers(answers) {
     const out = { id, name: String(a.name || '').trim(), kind: a.kind };
     if (a.kind === 'claude-code') out.configDir = tilde(abs(a.configDir || '~/.claude'));
     if (a.kind === 'codex') out.bin = a.bin ? tilde(abs(a.bin)) : null;
+    if (a.kind === 'copilot') {
+      out.provider = String(a.provider || 'github-copilot').trim();
+      out.transport = String(a.transport || 'cli').trim();
+      out.bin = a.bin ? tilde(abs(a.bin)) : null;
+    }
     const aliases = (a.aliases || []).map((x) => String(x).trim()).filter(Boolean);
     if (aliases.length) out.aliases = aliases;
     return out;
@@ -499,11 +504,13 @@ function candidateAccounts() {
   return [...found];
 }
 
-async function askPolicy(io, base, hasCodex) {
+async function askPolicy(io, base, hasCodex, hasCopilot) {
   let policy = base;
   if (!hasCodex) policy = setPath(policy, 'codex.enabled', false);
+  if (!hasCopilot) policy = setPath(policy, 'providers.copilot.enabled', false);
   const skipped = (r) =>
     (r.key.startsWith('codex.') && (!hasCodex || (r.key !== 'codex.enabled' && !policy.codex.enabled))) ||
+    (r.key.startsWith('providers.copilot.') && (!hasCopilot || (r.key !== 'providers.copilot.enabled' && !policy.providers.copilot.enabled))) ||
     (r.key.startsWith('debates.') && r.key !== 'debates.enabled' && !policy.debates.enabled) ||
     (r.key === 'debates.minConfidence' && !policy.debates.aiDecisions) ||
     (r.key === 'collaboration.claimHours' && !policy.collaboration.claims);
@@ -580,6 +587,15 @@ async function interview(opts) {
       else if (p) console.log('  Not a file; skipping Codex (run setup again to add it later).');
     }
 
+      // GitHub Copilot CLI
+      let copilotBin = null;
+      try {
+        copilotBin = findCopilotBin();
+      } catch {}
+      let useCopilot = false;
+      if (copilotBin) useCopilot = await io.yesNo(`\nFound GitHub Copilot CLI at ${tilde(copilotBin)}. Add local Copilot as a worker?`, false);
+      else console.log('\nGitHub Copilot CLI not found; set COPILOT_BIN or add it to agents.json later.');
+
     // Names
     console.log('\nNames. This is how each agent appears on the board. Aliases are other names you may use for it.');
     const agents = [];
@@ -595,6 +611,12 @@ async function interview(opts) {
       const name = await io.ask('  Name for Codex:', prev?.name || 'Codex');
       const aliases = await io.ask(`  Aliases for ${name} (comma-separated, Enter for none):`, (prev?.aliases || []).join(', '));
       agents.push({ id: prev?.id, name, kind: 'codex', bin: codexBin, aliases: aliases.split(',') });
+    }
+    if (useCopilot) {
+      const prev = prevOf((a) => a.kind === 'copilot');
+      const name = await io.ask('  Name for local Copilot:', prev?.name || 'Local Copilot');
+      const aliases = await io.ask(`  Aliases for ${name} (comma-separated, Enter for none):`, (prev?.aliases || []).join(', '));
+      agents.push({ id: prev?.id, name, kind: 'copilot', provider: 'github-copilot', transport: 'cli', bin: copilotBin, aliases: aliases.split(',') });
     }
     const groupName = await io.ask('  What do you call all of them together?', previous?.groupName || 'the team');
 
@@ -622,7 +644,7 @@ async function interview(opts) {
     }
     let policy;
     for (;;) {
-      policy = await askPolicy(io, base, useCodex);
+      policy = await askPolicy(io, base, useCodex, useCopilot);
       console.log(`\nThe policy you chose:\n${describePolicy(policy)}`);
       const a = (await io.ask('\nType "accept" to accept it, "change" to go through it again, or "quit":')).toLowerCase();
       if (a === 'accept') break;

@@ -97,7 +97,17 @@ Without `--yes`, a scripted setup only prints the plan and stops.
 }
 ```
 
-You can edit it by hand. Afterwards, run setup again so the commands and hooks match, then check with `doctor`. Only `claude-code` and `codex` kinds exist for now, and at most one Codex.
+You can edit it by hand. Afterwards, run setup again so the commands and hooks match, then check with `doctor`. `copilot` is a declarative provider identity only: this repository does not discover or launch a Copilot CLI or desktop session. Use `provider: "github-copilot"` and `transport: "external"` for a local integration managed by another application. At most one Codex is supported.
+
+```json
+{ "id": "copilot", "name": "Local Copilot", "kind": "copilot",
+  "provider": "github-copilot", "transport": "cli", "bin": null }
+```
+
+The adapter uses the locally installed `copilot` executable in prompt mode. Authenticate it
+with `copilot login` before running it, or set `COPILOT_BIN`/the agent's `bin` path. It runs
+read-only and requires per-project consent recorded with `node copilot.mjs consent <project>
+on`; it does not use ACP, edit worktrees, or apply changes.
 
 An agent knows who it is from `BOARD_AGENT`, which setup puts in its MCP server and hooks. Without that, it uses the account whose `configDir` matches `CLAUDE_CONFIG_DIR` (unset means `~/.claude`).
 

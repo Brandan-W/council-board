@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 export const REPO = fileURLToPath(new URL('../', import.meta.url));
 export const moduleURL = (file) => pathToFileURL(path.join(REPO, file)).href;
 export const FAKE_CODEX = path.join(REPO, 'test/fixtures/fake-codex');
+export const FAKE_COPILOT = path.join(REPO, 'test/fixtures/fake-copilot');
 
 export const agentsConfig = () => ({
   version: 1,
@@ -17,6 +18,7 @@ export const agentsConfig = () => ({
     { id: 'alpha', name: 'Alpha Claude', kind: 'claude-code', configDir: '~/.claude' },
     { id: 'beta', name: 'Beta Claude', kind: 'claude-code', configDir: '~/.claude-beta', aliases: ['Ace'] },
     { id: 'codex', name: 'Codex', kind: 'codex', bin: null },
+    { id: 'copilot', name: 'Local Copilot', kind: 'copilot', provider: 'github-copilot', transport: 'cli', bin: null },
   ],
 });
 
@@ -34,6 +36,7 @@ export function sandbox(t, { policy, agents = agentsConfig() } = {}) {
     HOME: home, BOARD_HOME: board, BOARD_AGENT: 'alpha',
     XDG_CONFIG_HOME: path.join(home, '.config'), XDG_DATA_HOME: path.join(home, '.local/share'),
     CODEX_HOME: path.join(home, '.codex'), CODEX_BIN: FAKE_CODEX,
+    COPILOT_BIN: FAKE_COPILOT, FAKE_COPILOT_CALLS: path.join(root, 'copilot-calls.jsonl'),
     CLAUDE_PROJECT_DIR: project, TEST_ROOT: root,
     TMPDIR: tmp, TMP: tmp, TEMP: tmp, TZ: 'UTC', LC_ALL: 'C',
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: path.join(home, 'empty-gitconfig'),

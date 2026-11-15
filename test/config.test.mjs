@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { agentsConfig, moduleURL, sandbox, succeeds } from './helpers.mjs';
 
-test('config: validates good agents and reports ids, duplicate names, missing directories and two Codex agents', (t) => {
+test('config: validates good agents and reports ids, duplicate names, missing directories, Copilot metadata and two Codex agents', (t) => {
   const s = sandbox(t);
   succeeds(s.evaluate(String.raw`
     const { validateAgents } = await import(${JSON.stringify(moduleURL('lib/config.mjs'))});
@@ -21,6 +21,12 @@ test('config: validates good agents and reports ids, duplicate names, missing di
     const twoCodex = structuredClone(good);
     twoCodex.agents.push({ id: 'second-codex', name: 'Second Codex', kind: 'codex' });
     assert.match(validateAgents(twoCodex).join('; '), /at most one codex agent/);
+    const noProvider = structuredClone(good);
+    delete noProvider.agents[3].provider;
+    assert.match(validateAgents(noProvider).join('; '), /provider is required/);
+    const noTransport = structuredClone(good);
+    delete noTransport.agents[3].transport;
+    assert.match(validateAgents(noTransport).join('; '), /transport is required/);
   `));
 });
 
